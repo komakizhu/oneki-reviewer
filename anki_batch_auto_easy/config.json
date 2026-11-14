@@ -1,0 +1,22 @@
+{
+  "enabled": true,
+  "auto_easy_enabled": true,
+  "auto_hard_enabled": true,
+  "auto_easy_timer_start": "answer",
+  "auto_hard_threshold_mode": "anki_max_taken",
+  "auto_hard_threshold_ms": 60000,
+  "auto_grade_priority": "hard",
+  "instant_undo_shortcut": "Z",
+  "strategy": "fixed",
+  "threshold_ms": 1000,
+  "distribution_percent": 0.2,
+  "minimum_batch_size": 5,
+  "smart_minimum_mode": "percent",
+  "smart_minimum_percent": 0.2,
+  "history_window": 2,
+  "smart_mad_multiplier": 2.0,
+  "quota_enabled": false,
+  "quota_percent": 0.2,
+  "quota_scope": "eligible_pool"
+}
+

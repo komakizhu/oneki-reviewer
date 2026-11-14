@@ -1,0 +1,4 @@
+__pycache__/
+*.py[cod]
+anki_batch_auto_easy/batch_state.json
+dist/

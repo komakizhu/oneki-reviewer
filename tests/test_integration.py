@@ -1,4 +1,5 @@
 import ast
+import json
 import logging
 import sys
 import types
@@ -75,6 +76,16 @@ class _SchedulingState:
 
 
 class IntegrationTests(unittest.TestCase):
+    def test_manifest_supports_anki_26_9_3_through_26_9_4(self):
+        manifest_path = (
+            Path(__file__).resolve().parents[1]
+            / "anki_batch_auto_easy"
+            / "manifest.json"
+        )
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["min_point_version"], 260903)
+        self.assertEqual(manifest["max_point_version"], -260904)
+
     def test_selected_diagnostics_are_logged_instead_of_notified(self):
         source = (
             Path(__file__).resolve().parents[1]
@@ -189,7 +200,7 @@ class IntegrationTests(unittest.TestCase):
         aqt_module.__path__ = []
         aqt_module.gui_hooks = gui_hooks
         aqt_module.mw = mw
-        aqt_module.appVersion = "26.9.3"
+        aqt_module.appVersion = "26.9.4"
         qt_module = types.ModuleType("aqt.qt")
         qt_module.QAction = Action
         controller = SimpleNamespace(
@@ -524,6 +535,8 @@ class IntegrationTests(unittest.TestCase):
         dialog = SettingsDialog.__new__(SettingsDialog)
         dialog.auto_easy_group = _Panel()
         dialog.auto_hard_group = _Panel()
+        dialog.auto_easy_options = _Panel()
+        dialog.auto_hard_options = _Panel()
         dialog.auto_grade_priority_box = _Panel()
 
         for plugin_enabled in (False, True):
@@ -542,10 +555,18 @@ class IntegrationTests(unittest.TestCase):
 
                         self.assertEqual(
                             dialog.auto_easy_group.enabled,
-                            plugin_enabled and auto_easy_enabled,
+                            plugin_enabled,
                         )
                         self.assertEqual(
                             dialog.auto_hard_group.enabled,
+                            plugin_enabled,
+                        )
+                        self.assertEqual(
+                            dialog.auto_easy_options.enabled,
+                            plugin_enabled and auto_easy_enabled,
+                        )
+                        self.assertEqual(
+                            dialog.auto_hard_options.enabled,
                             plugin_enabled and auto_hard_enabled,
                         )
                         self.assertEqual(
@@ -1175,6 +1196,21 @@ class IntegrationTests(unittest.TestCase):
             def __init__(self, _parent):
                 self.rows = []
 
+            def setContentsMargins(self, *_args):
+                pass
+
+            def setHorizontalSpacing(self, *_args):
+                pass
+
+            def setVerticalSpacing(self, *_args):
+                pass
+
+            def setColumnStretch(self, *_args):
+                pass
+
+            def addWidget(self, *row):
+                self.rows.append(row)
+
             def addRow(self, *row):
                 self.rows.append(row)
 
@@ -1200,6 +1236,7 @@ class IntegrationTests(unittest.TestCase):
             _Widget,
             _Label,
             {"distribution_percent": 0.2},
+            120,
         )
 
         self.assertIsInstance(dialog.percent_help, _Label)

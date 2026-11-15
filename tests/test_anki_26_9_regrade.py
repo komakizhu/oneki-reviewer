@@ -1,6 +1,6 @@
-"""Integration checks for the Anki 26.9.3 scheduler, history, and Qt UI.
+"""Integration checks for the Anki 26.9.4 scheduler, history, and Qt UI.
 
-Run with the Anki 26.9.3 runtime (the PyPI aqt package or bundled Anki resources):
+Run with the Anki 26.9.4 runtime (the PyPI aqt package or bundled Anki resources):
 ANKI_RESOURCES="/Applications/Anki.app/Contents/Resources" \
   /path/to/python3.13 -m unittest discover -s tests -p 'test_anki_26_9_regrade.py' -v
 """
@@ -1650,6 +1650,7 @@ class AnkiQtUndoUiTests(unittest.TestCase):
             (settings.enabled, "启用插件"),
             (settings.auto_easy_enabled, "自动变简单"),
             (settings.auto_hard_enabled, "自动再复习"),
+            (settings.quota_enabled, "启用每日上限"),
         ):
             with self.subTest(switch=name):
                 self.assertIsInstance(switch, QAbstractButton)
@@ -1665,9 +1666,12 @@ class AnkiQtUndoUiTests(unittest.TestCase):
         self.assertIn("启用插件", labels)
         self.assertIn("自动变简单", labels)
         self.assertIn("自动再复习", labels)
+        self.assertIn("启用每日上限", labels)
         self.assertIn("自动再复习设置", group_titles)
         self.assertIn("自动变简单设置", group_titles)
-        self.assertIn("两种评分都符合时", group_titles)
+        self.assertIn("优先级", group_titles)
+        self.assertTrue(settings.auto_easy_group.isAncestorOf(settings.auto_easy_enabled))
+        self.assertTrue(settings.auto_hard_group.isAncestorOf(settings.auto_hard_enabled))
         self.assertEqual(
             settings.auto_hard_priority.text(), "自动再复习优先"
         )
@@ -1676,11 +1680,11 @@ class AnkiQtUndoUiTests(unittest.TestCase):
         )
         self.assertEqual(
             settings.auto_hard_threshold_mode.itemText(0),
-            "回答时间记录上限（秒）（默认）",
+            "回答时间记录上限（秒）",
         )
         self.assertNotIn("超时处理", labels)
         self.assertNotIn("空格答题超时", labels)
-        self.assertIn("牌组选项", settings.auto_hard_help.text())
+        self.assertIn("牌组-选项-计时器", settings.auto_hard_help.text())
         self.assertIn("回答时间记录上限（秒）", settings.auto_hard_help.text())
         self.assertNotIn("当前状态", labels)
         self.assertIn(
@@ -1693,11 +1697,14 @@ class AnkiQtUndoUiTests(unittest.TestCase):
         settings.auto_hard_enabled.setChecked(True)
         self.assertTrue(settings.auto_grade_priority_box.isEnabled())
         settings.auto_easy_enabled.setChecked(False)
-        self.assertFalse(settings.auto_easy_group.isEnabled())
+        self.assertTrue(settings.auto_easy_group.isEnabled())
+        self.assertFalse(settings.auto_easy_options.isEnabled())
         self.assertTrue(settings.auto_hard_group.isEnabled())
+        self.assertTrue(settings.auto_hard_options.isEnabled())
         self.assertFalse(settings.auto_grade_priority_box.isEnabled())
         settings.enabled.setChecked(False)
         self.assertFalse(settings.auto_hard_group.isEnabled())
+        self.assertFalse(settings.auto_hard_options.isEnabled())
         self.assertFalse(settings.enabled.isChecked())
         self.assertFalse(settings.auto_easy_enabled.isChecked())
         self.assertTrue(settings.auto_hard_enabled.isChecked())

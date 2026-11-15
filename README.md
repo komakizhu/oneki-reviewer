@@ -2,7 +2,7 @@
 
 按你设置的规则，把符合条件的“良好”自动改成“简单”。答题超过时间限制时，也可以自动调整为“困难”或“重来”，让卡片按 Anki 的排程再次出现。
 
-支持 Anki 26.9.3 桌面版（macOS 和 Windows）。
+支持 Anki 26.9.3 和 26.9.4 桌面版（macOS 和 Windows）。
 
 ## 安装
 
@@ -10,7 +10,7 @@
 
 安装后重启 Anki。打开 **工具 → 一阅（Oneki reviewer）** 即可进入设置。
 
-也可以从 [GitHub Release 下载安装包](https://github.com/komakizhu/oneki-reviewer/releases/download/v0.10.2/oneki-reviewer-0.10.2.ankiaddon)，再通过 Anki 插件管理器的“从文件安装”进行安装。
+也可以从 [GitHub Release 下载安装包](https://github.com/komakizhu/oneki-reviewer/releases/download/v0.10.4/oneki-reviewer-0.10.4.ankiaddon)，再通过 Anki 插件管理器的“从文件安装”进行安装。
 
 ## 开始使用
 
@@ -26,7 +26,7 @@
 - **比例模式**：设置本轮复习中最快的一部分卡片；复习结束后，符合条件的卡片会改为“简单”。
 - **智能模式**：复习结束后，自动挑出本轮中答得明显更快的卡片，并改为“简单”。
 
-“变简单保护”会检查最近的通过记录。近期出现过“困难”或“重来”时，这张卡不会自动变简单。你也可以设置每天自动变简单的上限。
+“答错屏蔽变简单”会检查最近的通过记录。近期出现过“困难”或“重来”时，这张卡不会自动变简单。你也可以设置每天自动变简单的上限。
 
 ### 自动再复习
 
@@ -52,7 +52,7 @@
 
 Oneki reviewer automatically changes eligible **Good** ratings to **Easy** based on your rules. If an answer takes too long, it can change **Good** to **Hard** or **Again**, allowing Anki to schedule the card for another review.
 
-Supports Anki 26.9.3 desktop on macOS and Windows.
+Supports Anki 26.9.3 and 26.9.4 desktop on macOS and Windows.
 
 ## Install
 
@@ -60,7 +60,7 @@ In Anki, choose **Tools → Add-ons → Get Add-ons** and enter **465284797**. Y
 
 Restart Anki after installation. Open the settings from **Tools → Oneki reviewer**.
 
-Alternatively, [download the installer from GitHub Releases](https://github.com/komakizhu/oneki-reviewer/releases/download/v0.10.2/oneki-reviewer-0.10.2.ankiaddon) and install it through Anki’s Add-ons window using **Install from file**.
+Alternatively, [download the installer from GitHub Releases](https://github.com/komakizhu/oneki-reviewer/releases/download/v0.10.4/oneki-reviewer-0.10.4.ankiaddon) and install it through Anki’s Add-ons window using **Install from file**.
 
 ## Get started
 
@@ -76,7 +76,7 @@ The add-on only considers eligible **Good** answers. Choose one mode:
 - **Percentage mode**: Choose a percentage of the fastest cards in the review session. Eligible cards are changed to **Easy** when the session ends.
 - **Smart mode**: At the end of the session, the add-on selects cards answered noticeably faster than the rest and changes them to **Easy**.
 
-**Easy rating protection** checks recent passing reviews. If a recent review included **Hard** or **Again**, the card will not be changed to **Easy**. You can also set a daily limit.
+**Block Easy after incorrect answer** checks recent passing reviews. If a recent review included **Hard** or **Again**, the card will not be changed to **Easy**. You can also set a daily limit.
 
 ### Automatic re-review
 

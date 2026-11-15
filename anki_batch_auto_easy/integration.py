@@ -38,7 +38,7 @@ VALID_AUTO_EASY_TIMER_STARTS = {"question", "answer"}
 VALID_AUTO_HARD_THRESHOLD_MODES = {"anki_max_taken", "custom"}
 VALID_AUTO_GRADE_PRIORITIES = {"hard", "easy"}
 READ_COLUMNS = {
-    # Keep these reads away from PRAGMA table_info(): on Anki 26.9.3 the
+    # Keep these reads away from PRAGMA table_info(): on Anki 26.9.x the
     # schema-inspection query clears the just-created reviewer undo entry.
     "cards": (
         "id",
@@ -2701,15 +2701,35 @@ def _toggle_switch_type() -> type:
     return ToggleSwitch
 
 
+def _right_align_form(form: Any) -> None:
+    from aqt.qt import Qt
+
+    form.setLabelAlignment(
+        Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+    )
+    form.setFormAlignment(
+        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+    )
+
+
+def _right_aligned_label(text: str, width: int) -> Any:
+    from aqt.qt import QLabel, Qt
+
+    label = QLabel(text)
+    label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    label.setFixedWidth(width)
+    return label
+
+
 class SettingsDialog:
     def __init__(self, mw: Any, controller: BatchController):
         from aqt.qt import (
             QButtonGroup,
-            QCheckBox,
             QComboBox,
             QDialog,
             QDoubleSpinBox,
             QFormLayout,
+            QGridLayout,
             QGroupBox,
             QHBoxLayout,
             QKeySequence,
@@ -2717,13 +2737,79 @@ class SettingsDialog:
             QLabel,
             QPushButton,
             QRadioButton,
+            QSizePolicy,
             QSpinBox,
             QStackedWidget,
+            Qt,
             QVBoxLayout,
             QWidget,
         )
 
         ToggleSwitch = _toggle_switch_type()
+
+        def switch_row(label_text: str, switch: Any, label_width: int) -> QWidget:
+            row = QWidget()
+            row.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+            )
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(12)
+            label = _right_aligned_label(label_text, label_width)
+            label.setBuddy(switch)
+            row_layout.addWidget(label)
+            row_layout.addWidget(switch)
+            row_layout.addStretch(1)
+            return row
+
+        def label_width(texts: list[str]) -> int:
+            return max(QLabel(text).sizeHint().width() for text in texts) + 2
+
+        class CurrentPageStack(QStackedWidget):
+            def _fit_current_page(self) -> None:
+                page = self.currentWidget()
+                width = self.contentsRect().width()
+                if page is None or width <= 0:
+                    return
+                height = (
+                    page.heightForWidth(width)
+                    if page.hasHeightForWidth()
+                    else page.sizeHint().height()
+                )
+                height = max(height, page.minimumSizeHint().height())
+                if self.height() != height:
+                    self.setFixedHeight(height)
+
+            def resizeEvent(self, event: Any) -> None:
+                super().resizeEvent(event)
+                from aqt.qt import QTimer
+
+                QTimer.singleShot(0, self._fit_current_page)
+
+            def sizeHint(self) -> Any:
+                page = self.currentWidget()
+                return page.sizeHint() if page is not None else super().sizeHint()
+
+            def hasHeightForWidth(self) -> bool:
+                page = self.currentWidget()
+                return page.hasHeightForWidth() if page is not None else False
+
+            def heightForWidth(self, width: int) -> int:
+                page = self.currentWidget()
+                if page is None:
+                    return super().heightForWidth(width)
+                if page.hasHeightForWidth():
+                    return page.heightForWidth(width)
+                return page.sizeHint().height()
+
+            def minimumSizeHint(self) -> Any:
+                page = self.currentWidget()
+                return (
+                    page.minimumSizeHint()
+                    if page is not None
+                    else super().minimumSizeHint()
+                )
+
         self.dialog = QDialog(mw)
         self.dialog.setWindowTitle(tr("一阅（Oneki reviewer）", "Oneki reviewer"))
         self.dialog.setMinimumWidth(500)
@@ -2731,6 +2817,33 @@ class SettingsDialog:
         config = controller.config()
         self._smart_mad_multiplier = float(
             config.get("smart_mad_multiplier", 2.0)
+        )
+        self._auto_easy_label_width = label_width(
+            [
+                tr("启用插件", "Enable add-on"),
+                tr("自动变简单", "Automatic Easy"),
+                tr("计时起点", "Timer starts"),
+                tr("运行模式", "Mode"),
+                tr("启用每日上限", "Enable daily limit"),
+                tr("每天最多", "Maximum per day"),
+            ]
+        )
+        self._auto_easy_value_label_width = label_width(
+            [
+                tr("答错屏蔽变简单", "Block Easy after incorrect answer"),
+                tr("变简单阈值", "Time limit"),
+                tr("最快的前", "Fastest"),
+                tr("最低门槛按", "Minimum threshold"),
+                tr("本轮至少需要", "Minimum for this review"),
+                tr("计算方式", "Quota basis"),
+            ]
+        )
+        self._auto_hard_label_width = label_width(
+            [
+                tr("自动再复习", "Automatic re-review"),
+                tr("自动再复习阈值", "Automatic re-review threshold"),
+                tr("自定义用时", "Custom time limit"),
+            ]
         )
 
         self.enabled = ToggleSwitch(tr("启用插件", "Enable add-on"))
@@ -2745,8 +2858,8 @@ class SettingsDialog:
         )
         self.auto_hard_help = QLabel(
             tr(
-                "在牌组选项中向下找到“计时器”，修改“回答时间记录上限（秒）”。",
-                "In Deck Options, scroll to Timers and change Maximum answer seconds.",
+                "牌组-选项-计时器，修改“回答时间记录上限（秒）”，即可自定义自动再复习的阈值\n建议搭配「计时器」功能使用",
+                "Deck Options → Timer: change Maximum answer seconds to set the automatic re-review threshold.\nWe recommend using this with the Timer feature.",
             )
         )
         self.auto_hard_help.setWordWrap(True)
@@ -2764,7 +2877,7 @@ class SettingsDialog:
         )
 
         self.auto_easy_timer_start = QComboBox()
-        self.auto_easy_timer_start.addItem(tr("显示答案时（默认）", "When the answer is shown (default)"), "answer")
+        self.auto_easy_timer_start.addItem(tr("显示答案时", "When the answer is shown"), "answer")
         self.auto_easy_timer_start.addItem(tr("显示题目时", "When the question is shown"), "question")
         self.auto_easy_timer_start.setCurrentIndex(
             max(
@@ -2777,7 +2890,7 @@ class SettingsDialog:
 
         self.auto_hard_threshold_mode = QComboBox()
         self.auto_hard_threshold_mode.addItem(
-            tr("回答时间记录上限（秒）（默认）", "Maximum answer seconds (default)"), "anki_max_taken"
+            tr("回答时间记录上限（秒）", "Maximum answer seconds"), "anki_max_taken"
         )
         self.auto_hard_threshold_mode.addItem(tr("自定义秒数", "Custom time limit"), "custom")
         self.auto_hard_threshold_mode.setCurrentIndex(
@@ -2796,12 +2909,15 @@ class SettingsDialog:
         self.auto_hard_threshold.setValue(
             float(config["auto_hard_threshold_ms"]) / 1000
         )
-        self.auto_hard_threshold_label = QLabel(tr("自定义用时", "Custom time limit"))
+        self.auto_hard_threshold_label = _right_aligned_label(
+            tr("自定义用时", "Custom time limit"),
+            self._auto_hard_label_width,
+        )
         self.auto_hard_threshold_mode.currentIndexChanged.connect(
             self._update_auto_hard_threshold_visibility
         )
 
-        self.auto_grade_priority_box = QGroupBox(tr("两种评分都符合时", "When both rating rules match"))
+        self.auto_grade_priority_box = QGroupBox(tr("优先级", "Priority"))
         priority_layout = QVBoxLayout(self.auto_grade_priority_box)
         self.auto_hard_priority = QRadioButton(tr("自动再复习优先", "Prioritize automatic re-review"))
         self.auto_easy_priority = QRadioButton(tr("自动变简单优先", "Prioritize Easy rating"))
@@ -2822,41 +2938,63 @@ class SettingsDialog:
         self.strategy.addItem(tr("比例模式", "Percentage mode"), "percent")
         self.strategy.addItem(tr("智能模式", "Smart mode"), "smart")
 
-        self.mode_stack = QStackedWidget()
-        self._build_fixed_page(QDoubleSpinBox, QFormLayout, QWidget, config)
+        self.mode_stack = CurrentPageStack()
+        self._build_fixed_page(
+            QDoubleSpinBox,
+            QGridLayout,
+            QWidget,
+            config,
+            self._auto_easy_value_label_width,
+        )
         self._build_percent_page(
-            QDoubleSpinBox, QFormLayout, QWidget, QLabel, config
+            QDoubleSpinBox,
+            QGridLayout,
+            QWidget,
+            QLabel,
+            config,
+            self._auto_easy_value_label_width,
         )
         self._build_smart_page(
-            QFormLayout,
+            QGridLayout,
             QLabel,
             QComboBox,
             QDoubleSpinBox,
             QSpinBox,
             QStackedWidget,
+            QHBoxLayout,
             QWidget,
             config,
+            self._auto_easy_value_label_width,
         )
         self.strategy.currentIndexChanged.connect(self._update_strategy_page)
 
         self.history = QSpinBox()
         self.history.setRange(1, 10)
         self.history.setValue(int(config["history_window"]))
-        self.quota_group = QGroupBox(tr("每日上限", "Daily limit"))
-        quota_layout = QFormLayout()
-        self.quota_enabled = QCheckBox(tr("启用上限", "Enable limit"))
+        self.quota_enabled = ToggleSwitch(
+            tr("启用每日上限", "Enable daily limit")
+        )
         self.quota_enabled.setChecked(bool(config["quota_enabled"]))
-        quota_layout.addRow(self.quota_enabled)
-
         self.quota_details = QWidget()
-        quota_details_layout = QFormLayout(self.quota_details)
+        quota_details_layout = QGridLayout(self.quota_details)
+        quota_details_layout.setContentsMargins(0, 0, 0, 0)
+        quota_details_layout.setHorizontalSpacing(12)
+        quota_details_layout.setVerticalSpacing(8)
         self.quota_percent = QDoubleSpinBox()
         self.quota_percent.setRange(0.1, 100.0)
         self.quota_percent.setSingleStep(1.0)
         self.quota_percent.setDecimals(1)
         self.quota_percent.setSuffix("%")
         self.quota_percent.setValue(float(config["quota_percent"]) * 100)
-        quota_details_layout.addRow(tr("每天最多", "Maximum per day"), self.quota_percent)
+        quota_details_layout.addWidget(
+            _right_aligned_label(
+                tr("每天最多", "Maximum per day"),
+                self._auto_easy_label_width,
+            ),
+            0,
+            0,
+        )
+        quota_details_layout.addWidget(self.quota_percent, 0, 1)
 
         self.quota_scope = QComboBox()
         self.quota_scope.addItem(tr("只按可升级的卡计算", "Count only eligible cards"), "eligible_pool")
@@ -2864,28 +3002,104 @@ class SettingsDialog:
         self.quota_scope.setCurrentIndex(
             max(0, self.quota_scope.findData(config["quota_scope"]))
         )
-        quota_details_layout.addRow(tr("计算方式", "Quota basis"), self.quota_scope)
-        quota_layout.addRow(self.quota_details)
-        self.quota_group.setLayout(quota_layout)
+        quota_details_layout.addWidget(
+            _right_aligned_label(
+                tr("计算方式", "Quota basis"),
+                self._auto_easy_value_label_width,
+            ),
+            0,
+            2,
+        )
+        quota_details_layout.addWidget(self.quota_scope, 0, 3)
+        quota_details_layout.setColumnStretch(1, 1)
+        quota_details_layout.setColumnStretch(3, 1)
         self.quota_enabled.toggled.connect(self._update_quota_visibility)
 
         self.auto_easy_group = QGroupBox(tr("自动变简单设置", "Automatic Easy rating settings"))
-        auto_easy_layout = QFormLayout(self.auto_easy_group)
-        auto_easy_layout.addRow(tr("计时起点", "Timer starts"), self.auto_easy_timer_start)
+        auto_easy_container = QVBoxLayout(self.auto_easy_group)
+        auto_easy_container.setSpacing(8)
+        auto_easy_container.addWidget(
+            switch_row(
+                tr("自动变简单", "Automatic Easy"),
+                self.auto_easy_enabled,
+                self._auto_easy_label_width,
+            )
+        )
+        self.auto_easy_options = QWidget()
+        auto_easy_layout = QGridLayout(self.auto_easy_options)
+        auto_easy_layout.setContentsMargins(0, 0, 0, 0)
+        auto_easy_layout.setHorizontalSpacing(12)
+        auto_easy_layout.setVerticalSpacing(8)
+        auto_easy_layout.addWidget(
+            _right_aligned_label(
+                tr("计时起点", "Timer starts"), self._auto_easy_label_width
+            ),
+            0,
+            0,
+        )
+        auto_easy_layout.addWidget(self.auto_easy_timer_start, 0, 1)
         self.history.setSuffix(tr(" 次", ""))
-        auto_easy_layout.addRow(tr("变简单保护", "Easy rating protection"), self.history)
-        auto_easy_layout.addRow(tr("运行模式", "Mode"), self.strategy)
-        auto_easy_layout.addRow(self.mode_stack)
-        auto_easy_layout.addRow(self.quota_group)
+        auto_easy_layout.addWidget(
+            _right_aligned_label(
+                tr("答错屏蔽变简单", "Block Easy after incorrect answer"),
+                self._auto_easy_value_label_width,
+            ),
+            0,
+            2,
+        )
+        auto_easy_layout.addWidget(self.history, 0, 3)
+        auto_easy_layout.addWidget(
+            _right_aligned_label(
+                tr("运行模式", "Mode"), self._auto_easy_label_width
+            ),
+            1,
+            0,
+        )
+        auto_easy_layout.addWidget(self.strategy, 1, 1)
+        auto_easy_layout.addWidget(self.mode_stack, 1, 2, 1, 2)
+        auto_easy_layout.addWidget(
+            _right_aligned_label(
+                tr("启用每日上限", "Enable daily limit"),
+                self._auto_easy_label_width,
+            ),
+            2,
+            0,
+        )
+        auto_easy_layout.addWidget(self.quota_enabled, 2, 1)
+        auto_easy_layout.addWidget(self.quota_details, 3, 0, 1, 4)
+        auto_easy_layout.setColumnStretch(1, 1)
+        auto_easy_layout.setColumnStretch(3, 1)
+        auto_easy_container.addWidget(self.auto_easy_options)
 
         self.auto_hard_group = QGroupBox(tr("自动再复习设置", "Automatic re-review settings"))
-        auto_hard_layout = QFormLayout(self.auto_hard_group)
-        auto_hard_layout.addRow(tr("触发用时", "Trigger time"), self.auto_hard_threshold_mode)
-        auto_hard_layout.addRow(
-            self.auto_hard_threshold_label,
-            self.auto_hard_threshold,
+        auto_hard_container = QVBoxLayout(self.auto_hard_group)
+        auto_hard_container.setSpacing(8)
+        auto_hard_container.addWidget(
+            switch_row(
+                tr("自动再复习", "Automatic re-review"),
+                self.auto_hard_enabled,
+                self._auto_hard_label_width,
+            )
         )
-        auto_hard_layout.addRow(self.auto_hard_help)
+        self.auto_hard_options = QWidget()
+        auto_hard_layout = QGridLayout(self.auto_hard_options)
+        auto_hard_layout.setContentsMargins(0, 0, 0, 0)
+        auto_hard_layout.setHorizontalSpacing(12)
+        auto_hard_layout.setVerticalSpacing(8)
+        auto_hard_layout.addWidget(
+            _right_aligned_label(
+                tr("自动再复习阈值", "Automatic re-review threshold"),
+                self._auto_hard_label_width,
+            ),
+            0,
+            0,
+        )
+        auto_hard_layout.addWidget(self.auto_hard_threshold_mode, 0, 1)
+        auto_hard_layout.addWidget(self.auto_hard_threshold_label, 1, 0)
+        auto_hard_layout.addWidget(self.auto_hard_threshold, 1, 1)
+        auto_hard_layout.addWidget(self.auto_hard_help, 2, 0, 1, 2)
+        auto_hard_layout.setColumnStretch(1, 1)
+        auto_hard_container.addWidget(self.auto_hard_options)
 
         shortcut_row = QWidget()
         shortcut_layout = QHBoxLayout(shortcut_row)
@@ -2895,20 +3109,49 @@ class SettingsDialog:
         timing_button.clicked.connect(lambda: controller.show_timing_history(self.dialog))
         shortcut_layout.addWidget(timing_button)
 
-        form = QFormLayout()
-        form.addRow(tr("启用插件", "Enable add-on"), self.enabled)
-        form.addRow(tr("自动变简单", "Automatically rate Good as Easy"), self.auto_easy_enabled)
-        form.addRow(tr("自动再复习", "Automatic re-review"), self.auto_hard_enabled)
-        form.addRow(self.auto_easy_group)
-        form.addRow(self.auto_hard_group)
-        form.addRow(self.auto_grade_priority_box)
-        form.addRow(tr("撤销改分快捷键", "Undo rating shortcut"), shortcut_row)
+        enabled_row = switch_row(
+            tr("启用插件", "Enable add-on"),
+            self.enabled,
+            self._auto_easy_label_width,
+        )
+
+        shortcut_form = QFormLayout()
+        _right_align_form(shortcut_form)
+        shortcut_form.addRow(
+            tr("撤销快捷键", "Undo shortcut"), shortcut_row
+        )
 
         save = QPushButton(tr("保存", "Save"))
         save.clicked.connect(self._save)
         layout = QVBoxLayout()
-        layout.addLayout(form)
+        layout.addWidget(enabled_row)
+        layout.addWidget(self.auto_easy_group)
+        layout.addWidget(self.auto_hard_group)
+        layout.addWidget(self.auto_grade_priority_box)
+        layout.addLayout(shortcut_form)
         layout.addWidget(save)
+
+        try:
+            manifest = json.loads(
+                Path(__file__).with_name("manifest.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            version = str(manifest["human_version"])
+        except (OSError, KeyError, TypeError, json.JSONDecodeError):
+            version = tr("未知", "Unknown")
+        footer = QLabel(
+            trf(
+                '版本 {version} · <a href="https://github.com/komakizhu/oneki-reviewer">GitHub 主页</a> · 开发者 komakizhu',
+                'Version {version} · <a href="https://github.com/komakizhu/oneki-reviewer">GitHub</a> · Developer komakizhu',
+                version=version,
+            )
+        )
+        footer.setTextFormat(Qt.TextFormat.RichText)
+        footer.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        footer.setOpenExternalLinks(True)
+        footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(footer)
         self.dialog.setLayout(layout)
 
         self.strategy.setCurrentIndex(
@@ -2925,12 +3168,16 @@ class SettingsDialog:
     def _build_fixed_page(
         self,
         double_spin_box: Any,
-        form_layout: Any,
+        grid_layout: Any,
         widget: Any,
         config: dict[str, Any],
+        label_width: int,
     ) -> None:
         page = widget()
-        form = form_layout(page)
+        form = grid_layout(page)
+        form.setContentsMargins(0, 0, 0, 0)
+        form.setHorizontalSpacing(12)
+        form.setVerticalSpacing(8)
         self.threshold = double_spin_box()
         self.threshold.setRange(0, 3600)
         self.threshold.setDecimals(3)
@@ -2943,20 +3190,30 @@ class SettingsDialog:
                 "When the criteria are met, the rating changes as you answer. At the end of review, only completed automatic ratings are summarized.",
             )
         )
-        form.addRow(tr("用时上限", "Time limit"), self.threshold)
+        form.addWidget(
+            _right_aligned_label(tr("变简单阈值", "Time limit"), label_width),
+            0,
+            0,
+        )
+        form.addWidget(self.threshold, 0, 1)
+        form.setColumnStretch(1, 1)
 
         self.mode_stack.addWidget(page)
 
     def _build_percent_page(
         self,
         double_spin_box: Any,
-        form_layout: Any,
+        grid_layout: Any,
         widget: Any,
         label: Any,
         config: dict[str, Any],
+        label_width: int,
     ) -> None:
         page = widget()
-        form = form_layout(page)
+        form = grid_layout(page)
+        form.setContentsMargins(0, 0, 0, 0)
+        form.setHorizontalSpacing(12)
+        form.setVerticalSpacing(8)
         self.distribution = double_spin_box()
         self.distribution.setRange(0.1, 100.0)
         self.distribution.setSingleStep(1.0)
@@ -2964,25 +3221,36 @@ class SettingsDialog:
         self.distribution.setSuffix("%")
         self.distribution.setValue(float(config["distribution_percent"]) * 100)
         self.distribution.valueChanged.connect(self._update_percent_help)
-        form.addRow(tr("最快的前", "Fastest"), self.distribution)
+        form.addWidget(
+            _right_aligned_label(tr("最快的前", "Fastest"), label_width),
+            0,
+            0,
+        )
+        form.addWidget(self.distribution, 0, 1)
         self.percent_help = label()
         self.percent_help.setWordWrap(True)
-        form.addRow(self.percent_help)
+        form.addWidget(self.percent_help, 1, 0, 1, 2)
+        form.setColumnStretch(1, 1)
         self.mode_stack.addWidget(page)
 
     def _build_smart_page(
         self,
-        form_layout: Any,
+        grid_layout: Any,
         label: Any,
         combo_box: Any,
         double_spin_box: Any,
         spin_box: Any,
         stacked_widget: Any,
+        value_layout: Any,
         widget: Any,
         config: dict[str, Any],
+        label_width: int,
     ) -> None:
         page = widget()
-        form = form_layout(page)
+        form = grid_layout(page)
+        form.setContentsMargins(0, 0, 0, 0)
+        form.setHorizontalSpacing(12)
+        form.setVerticalSpacing(8)
         self.smart_minimum_mode = combo_box()
         self.smart_minimum_mode.addItem(tr("按百分比", "By percentage"), "percent")
         self.smart_minimum_mode.addItem(tr("按固定张数", "By fixed card count"), "count")
@@ -2994,7 +3262,14 @@ class SettingsDialog:
                 ),
             )
         )
-        form.addRow(tr("最低门槛按", "Minimum threshold"), self.smart_minimum_mode)
+        form.addWidget(
+            _right_aligned_label(
+                tr("最低门槛按", "Minimum threshold"), label_width
+            ),
+            0,
+            0,
+        )
+        form.addWidget(self.smart_minimum_mode, 0, 1)
 
         self.smart_minimum_percent = double_spin_box()
         self.smart_minimum_percent.setRange(0.1, 100.0)
@@ -3013,18 +3288,30 @@ class SettingsDialog:
 
         self.smart_value_stack = stacked_widget()
         percent_page = widget()
-        percent_form = form_layout(percent_page)
-        percent_form.addRow(tr("本轮至少需要", "Minimum for this review"), self.smart_minimum_percent)
+        percent_form = value_layout(percent_page)
+        percent_form.setContentsMargins(0, 0, 0, 0)
+        percent_form.addWidget(self.smart_minimum_percent)
+        percent_form.addStretch(1)
         count_page = widget()
-        count_form = form_layout(count_page)
-        count_form.addRow(tr("本轮至少需要", "Minimum for this review"), self.smart_minimum_count)
+        count_form = value_layout(count_page)
+        count_form.setContentsMargins(0, 0, 0, 0)
+        count_form.addWidget(self.smart_minimum_count)
+        count_form.addStretch(1)
         self.smart_value_stack.addWidget(percent_page)
         self.smart_value_stack.addWidget(count_page)
-        form.addRow(self.smart_value_stack)
+        form.addWidget(
+            _right_aligned_label(
+                tr("本轮至少需要", "Minimum for this review"), label_width
+            ),
+            1,
+            0,
+        )
+        form.addWidget(self.smart_value_stack, 1, 1)
 
         self.smart_help = label()
         self.smart_help.setWordWrap(True)
-        form.addRow(self.smart_help)
+        form.addWidget(self.smart_help, 2, 0, 1, 2)
+        form.setColumnStretch(1, 1)
         self.smart_minimum_mode.currentIndexChanged.connect(
             self._update_smart_minimum_page
         )
@@ -3039,6 +3326,11 @@ class SettingsDialog:
 
     def _update_strategy_page(self, index: int) -> None:
         self.mode_stack.setCurrentIndex(index)
+        self.mode_stack._fit_current_page()
+        self.mode_stack.updateGeometry()
+        from aqt.qt import QTimer
+
+        QTimer.singleShot(0, self.mode_stack._fit_current_page)
         if self.strategy.currentData() == "percent":
             self._update_percent_help(self.distribution.value())
 
@@ -3090,8 +3382,10 @@ class SettingsDialog:
         plugin_enabled = self.enabled.isChecked()
         auto_easy_enabled = self.auto_easy_enabled.isChecked()
         auto_hard_enabled = self.auto_hard_enabled.isChecked()
-        self.auto_easy_group.setEnabled(plugin_enabled and auto_easy_enabled)
-        self.auto_hard_group.setEnabled(plugin_enabled and auto_hard_enabled)
+        self.auto_easy_group.setEnabled(plugin_enabled)
+        self.auto_hard_group.setEnabled(plugin_enabled)
+        self.auto_easy_options.setEnabled(plugin_enabled and auto_easy_enabled)
+        self.auto_hard_options.setEnabled(plugin_enabled and auto_hard_enabled)
         self.auto_grade_priority_box.setEnabled(
             plugin_enabled and auto_easy_enabled and auto_hard_enabled
         )

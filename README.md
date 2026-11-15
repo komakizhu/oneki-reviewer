@@ -1,85 +1,97 @@
 # 一阅（Oneki reviewer）
 
-这是一个适用于 Anki 26.9.3 macOS 和 Windows 桌面版的插件。它会把符合条件的“良好”自动改为“简单”。固定秒数模式在每次答题时即时判断并生效；比例和智能模式在本轮复习结束后统一判断。
+按你设置的规则，把符合条件的“良好”自动改成“简单”。答题超过时间限制时，也可以自动调整为“困难”或“重来”，让卡片按 Anki 的排程再次出现。
 
-## 当前目标环境
+支持 Anki 26.9.3 桌面版（macOS 和 Windows）。
 
-- Anki `26.9.3`（macOS、Windows）
-- Python 由 Anki 自带，不需要单独安装依赖
+## 安装
 
-## 界面语言 / Interface language
+在 Anki 中打开 **工具 → 插件 → 获取插件**，输入插件代码：**465284797**。也可以前往[一阅的 AnkiWeb 页面](https://ankiweb.net/shared/info/465284797)安装。
 
-插件界面跟随 Anki 当前配置的语言：中文 Anki 显示中文，英文 Anki 显示英文，其他语言的 Anki 显示英文。
+安装后重启 Anki。打开 **工具 → 一阅（Oneki reviewer）** 即可进入设置。
 
-The add-on follows Anki's selected language: Chinese for Chinese Anki, English for English Anki, and English for all other languages.
+也可以从 [GitHub Release 下载安装包](https://github.com/komakizhu/oneki-reviewer/releases/download/v0.10.2/oneki-reviewer-0.10.2.ankiaddon)，再通过 Anki 插件管理器的“从文件安装”进行安装。
 
-## 从 AnkiWeb 安装 / Install from AnkiWeb
+## 开始使用
 
-在 Anki 中选择“工具 → 插件 → 获取插件”，输入插件代码 **465284797**。也可以打开[一阅 AnkiWeb 页面](https://ankiweb.net/shared/info/465284797)查看详情。
+在“一阅”设置中启用插件，并按需打开“自动变简单”或“自动再复习”。设置完成后点击“保存”。这两项可以单独启用。
 
-In Anki, choose **Tools → Add-ons → Get Add-ons**, enter **465284797**, and follow the prompts. See the [Oneki reviewer AnkiWeb page](https://ankiweb.net/shared/info/465284797) for details.
+使用自动规则前，请先在 Anki「设置 → 复习」中开启「将空格键（或回车键）用于评估卡片」。之后，只有显示答案后按空格键评分时规则才会生效；点击评分按钮或使用其他评分快捷键时，插件会保留你的评分。
 
-## 手动安装 / Manual installation
+### 自动变简单
 
-把 `anki_batch_auto_easy` 文件夹复制到 Anki 的插件目录。
+插件只考虑符合条件的“良好”答题。你可以选择一种判断方式：
 
-macOS：
+- **固定模式**：设置答题用时上限。答得够快时，当场把“良好”改为“简单”；计时可从显示题目或显示答案开始。
+- **比例模式**：设置本轮复习中最快的一部分卡片；复习结束后，符合条件的卡片会改为“简单”。
+- **智能模式**：复习结束后，自动挑出本轮中答得明显更快的卡片，并改为“简单”。
 
-```text
-~/Library/Application Support/Anki2/addons21/
-```
+“变简单保护”会检查最近的通过记录。近期出现过“困难”或“重来”时，这张卡不会自动变简单。你也可以设置每天自动变简单的上限。
 
-Windows：
+### 自动再复习
 
-```text
-%APPDATA%\Anki2\addons21\
-```
+答题时间达到上限后，插件会根据 Anki 当天的排程，把“良好”调整为“困难”或“重来”。
 
-重启 Anki 后，点击“工具 → 一阅（Oneki reviewer）”即可直接打开插件设置。
+触发时间可使用 Anki 的答题时间上限：在对应牌组的“选项”中找到“计时器”，设置“回答时间记录上限（秒）”；也可以在一阅设置中选择自定义秒数。如果“自动变简单”和“自动再复习”同时符合条件，可以设置哪一项优先。
 
-## 规则摘要
+## 撤销与答题记录
 
-- 原始评分不是“良好”时不修改。
-- 只有在答案显示后按空格评分时才自动改分；其他评分快捷键和鼠标评分会保留用户选择，仍记录答题和计时，但不进入自动改分候选。
-- 新卡首次学习过程中，前两次“良好”都可以即时参与判断；任意一次达到固定模式速度阈值、通过记录干净且每日上限允许时，便直接改为“简单”，不必再等后续学习步骤。
-- 已复习过的卡只在能结束当天学习/重学的最后一次“良好”时参与自动变简单：固定模式在这次答题时立即生效，比例和智能模式在本轮结束后判断。
-- 默认 `history_window=2`，检查本次和上一次完整通过记录；任一通过序列里出现过“重来”或“困难”，本次“良好”就不自动升级为“简单”。
-- 可选启用慢答保护：达到 Anki 最大答题秒数或自定义阈值后，“困难”当天再次复习时选“困难”，否则选“重来”，即使“重来”也不在当天复习。时间只按题目显示到首次显示答案计算，答案显示后的阅读、切换软件和等待评分时间不计入，与自动变简单的计时起点设置无关。无法确认这段时间或排程时保持原评分，并按 Anki 复习日截止时间判断是否跨日。
-- “自动变简单”和“自动再复习”默认开启，也可以分别关闭；关闭其中一项不会影响另一项。
-- 插件即时调整评分后，会显示评分变化和“撤销改分”按钮。撤销会把这次评分与排程恢复成你刚选的结果，但保留答题次数及复习记录；默认按 `Z`，也可在设置中改键或清空。若 Anki 中已有其他操作，撤销入口会失效以避免改错记录。比例和智能模式在复习结束后的批量调整只显示实际调整张数，不提供撤销。
-- 批量改分保留原来的答题次数和用时，不额外消耗牌组及其父牌组的每日额度；已撤销或已变化的记录会跳过，不影响其他卡片处理。
-- 使用 Anki 原生撤销或重做时，插件会同步候选、每日统计和计时记录；已经撤销的答题不再参与自动改分。
-- 三种模式可以切换：固定模式、比例模式、智能模式；每种模式只显示自己的设置。
-- 固定模式按答题时间阈值即时判断，符合条件的新卡和复习卡都在本次评分时生效。复习结束后只汇总此前已完成的自动评分，不再追加改分；多个牌组合并显示一条本轮汇总，撤销的评分不计入。
-- 固定模式的每日上限按答题当时已有的记录判断；当时未获准自动变简单的答题，不会在结束后回头补改。比例和智能模式依赖整轮复习数据，仍在复习结束后判断。
-- `20%` 模式需要至少 5 张卡；不足时这一轮不处理，不回退其他模式。
-- 智能模式会根据这轮复习的答题时间自动识别明显过慢的卡片；最低门槛默认按百分比计算，也可以改成固定张数。
-- 每天上限按本机本地日期保存。
-- 自动变简单的计时起点可以选“显示答案”或“显示题目”，默认“显示答案”，计时到选择评分为止。
-- 同时符合自动变简单和自动再复习时，可选“自动再复习优先”或“自动变简单优先”，默认“自动再复习优先”。
-- 最近100张答题记录会保存题目到首次显示答案、题目到评分、答案显示到评分、Anki 最大答题秒数和总用时是否触及上限；总用时触及上限仅作统计，不作为慢答判定依据。可在一阅设置窗口中查看，并区分用户评分和最终生效评分。旧记录未保存题目到答案时间时，该项显示“未知”，不会回写或重算旧评分。
-- 批量改分后，计时记录中的最终评分会同步更新；配置无效时暂停自动改分，修正配置后再恢复使用。
-- 固定模式的配置窗口显示本轮实际已完成的自动评分和剩余上限；比例和智能模式显示候选数、最低要求、预计升级数和剩余上限。
-- 复习和上限状态保存到当前 Anki profile，不会与其他 profile 混用。
+固定模式即时改分后，可以点击“撤销改分”或按快捷键 **Z**（默认设置），恢复你刚选的评分和排程，同时保留这次答题记录。比例模式和智能模式会在本轮复习结束后批量处理，并显示调整张数；一阅目前不提供批量改分的撤销入口。
 
-## 测试
+设置中的“最近100张答题计时”可以查看最近的答题时间和最终评分。计时、复习统计和设置保存在当前 Anki 用户资料中，不会发送到外部服务。
 
-在项目根目录运行全部检查：
+## 帮助与许可
 
-```bash
-python3 -m unittest discover -s tests -v
-```
+遇到问题或想查看源代码，请访问[一阅 GitHub 仓库](https://github.com/komakizhu/oneki-reviewer)。
 
-Anki 26.9.3 的排程和 Qt 检查使用官方 `aqt` 包和离屏 Qt，在项目根目录运行：
+本插件采用 [GNU AGPL v3.0](LICENSE) 许可。
 
-```bash
-python3.13 -m pip install 'aqt[qt69]==26.9.3'
-QT_QPA_PLATFORM=offscreen python3.13 -m unittest discover -s tests -v
-```
+---
 
-测试使用隔离集合和离屏 Qt 窗口；Anki reviewer 页面中的真实鼠标和键盘交互仍需在 Anki 本体中验证。
+# English
 
-## 许可与日志
+Oneki reviewer automatically changes eligible **Good** ratings to **Easy** based on your rules. If an answer takes too long, it can change **Good** to **Hard** or **Again**, allowing Anki to schedule the card for another review.
 
-本插件采用 GNU AGPL v3.0，详见 [LICENSE](LICENSE)。指定的评分与撤销异常会写入 Anki 的插件日志，不弹出提示；日志可从 Anki 的“帮助 → 查看日志”中查看。
+Supports Anki 26.9.3 desktop on macOS and Windows.
 
+## Install
+
+In Anki, choose **Tools → Add-ons → Get Add-ons** and enter **465284797**. You can also install it from the [Oneki reviewer AnkiWeb page](https://ankiweb.net/shared/info/465284797).
+
+Restart Anki after installation. Open the settings from **Tools → Oneki reviewer**.
+
+Alternatively, [download the installer from GitHub Releases](https://github.com/komakizhu/oneki-reviewer/releases/download/v0.10.2/oneki-reviewer-0.10.2.ankiaddon) and install it through Anki’s Add-ons window using **Install from file**.
+
+## Get started
+
+Enable the add-on in its settings, then turn on **Automatically rate Good as Easy**, **Automatic re-review**, or both. Save your changes.
+
+Before using automatic rules, enable **Spacebar (or enter) also answers card** in Anki’s **Preferences → Review**. Rules only run when you reveal the answer and press **Space** to rate it; clicking a rating button or using another shortcut keeps your selected rating.
+
+### Automatically rate Good as Easy
+
+The add-on only considers eligible **Good** answers. Choose one mode:
+
+- **Fixed mode**: Set a time limit. A fast enough answer is changed to **Easy** immediately. You can start the timer when the question or answer appears.
+- **Percentage mode**: Choose a percentage of the fastest cards in the review session. Eligible cards are changed to **Easy** when the session ends.
+- **Smart mode**: At the end of the session, the add-on selects cards answered noticeably faster than the rest and changes them to **Easy**.
+
+**Easy rating protection** checks recent passing reviews. If a recent review included **Hard** or **Again**, the card will not be changed to **Easy**. You can also set a daily limit.
+
+### Automatic re-review
+
+When an answer reaches the time limit, the add-on changes **Good** to **Hard** or **Again** based on Anki’s schedule for that day.
+
+To use Anki’s answer-time limit, open the deck’s **Options**, find **Timers**, and set **Maximum answer seconds**. You can also choose a custom limit in Oneki reviewer’s settings. If both rules match, choose which one takes priority.
+
+## Undo and review history
+
+After an immediate change in Fixed mode, click **Undo rating change** or press **Z** (the default shortcut) to restore your selected rating and schedule while keeping the review record. Percentage and Smart modes make batch changes when the review session ends and show how many cards changed; Oneki reviewer does not currently provide an undo action for batch changes.
+
+Open **Last 100 Review Timings** in the settings to see recent answer times and final ratings. Timing data, review statistics, and settings are stored in the active Anki profile and are not sent to an external service.
+
+## Help and license
+
+Visit the [Oneki reviewer GitHub repository](https://github.com/komakizhu/oneki-reviewer) for source code or to report an issue.
+
+Licensed under [GNU AGPL v3.0](LICENSE).

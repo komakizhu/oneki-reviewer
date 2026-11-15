@@ -2,7 +2,7 @@
 
 按你设置的规则，把符合条件的“良好”自动改成“简单”。答题超过时间限制时，也可以自动调整为“困难”或“重来”，让卡片按 Anki 的排程再次出现。
 
-支持 Anki 26.9.3 和 26.9.4 桌面版（macOS 和 Windows）。
+支持 Anki 2.1.0 及更新的桌面版（macOS 和 Windows）。使用旧排程器时（包括 Anki 2.1.0–2.1.49），固定计时规则可用；自动再复习会选“重来”，以确保当天重新出现。比例、智能批次、每日上限和批量改分需要 V3 排程器。当前全功能路径已在 Anki 26.9.0–26.9.4 上验证。
 
 ## 安装
 
@@ -52,7 +52,7 @@
 
 Oneki reviewer automatically changes eligible **Good** ratings to **Easy** based on your rules. If an answer takes too long, it can change **Good** to **Hard** or **Again**, allowing Anki to schedule the card for another review.
 
-Supports Anki 26.9.3 and 26.9.4 desktop on macOS and Windows.
+Supports Anki 2.1.0 and newer desktop releases on macOS and Windows. With the classic scheduler, including Anki 2.1.0–2.1.49, fixed timing rules are available; automatic re-review uses Again so the card is shown again that day. Percentage and smart batch selection, daily limits, and batch regrading require the V3 scheduler. The full feature path has been verified with Anki 26.9.0–26.9.4.
 
 ## Install
 

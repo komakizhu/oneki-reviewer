@@ -84,19 +84,21 @@ class AnkiReplacementAdapter:
             import aqt
         except ImportError as exc:
             raise AdapterError(tr("Anki 运行环境不可用", "Anki runtime is not available")) from exc
-        version = _parse_version(getattr(aqt, "appVersion", ""))
-        if version[:2] != (26, 9):
+        scheduler = self.collection.sched
+        backend = getattr(self.collection, "_backend", None)
+        supports_states = backend is not None and any(
+            callable(getattr(backend, name, None))
+            for name in ("get_scheduling_states", "get_next_card_states")
+        )
+        if not (
+            callable(getattr(scheduler, "answer_card", None))
+            and callable(getattr(scheduler, "build_answer", None))
+            and supports_states
+        ):
             raise AdapterError(
                 tr(
-                    "需要 Anki 26.9.x，当前版本为 {version}",
-                    "Anki 26.9.x is required, but the current version is {version}.",
-                ).format(version=getattr(aqt, "appVersion", "unknown"))
-            )
-        if not hasattr(self.collection.sched, "answer_card"):
-            raise AdapterError(
-                tr(
-                    "Anki 排程器的 answer_card() 不可用",
-                    "Anki scheduler answer_card() is unavailable.",
+                    "当前 Anki 排程器缺少安全改分所需的接口",
+                    "The active Anki scheduler does not provide the APIs required for safe regrading.",
                 )
             )
 
@@ -310,7 +312,7 @@ class AnkiReplacementAdapter:
 
         card = self.collection.get_card(record.card_id)
         card.start_timer()
-        states = self.collection._backend.get_scheduling_states(record.card_id)
+        states = _scheduling_states(self.collection, record.card_id)
         answer = self.collection.sched.build_answer(
             card=card,
             states=states,
@@ -345,6 +347,22 @@ def _parse_version(value: str) -> tuple[int, int, int]:
     while len(pieces) < 3:
         pieces.append(0)
     return tuple(pieces[:3])
+
+
+def _scheduling_states(collection: Any, card_id: int) -> Any:
+    backend = collection._backend
+    getter = getattr(backend, "get_scheduling_states", None)
+    if callable(getter):
+        return getter(card_id)
+    getter = getattr(backend, "get_next_card_states", None)
+    if callable(getter):
+        return getter(card_id)
+    raise AdapterError(
+        tr(
+            "Anki 无法读取卡片排程状态",
+            "Anki could not read the card's scheduling states.",
+        )
+    )
 
 
 def _same_scheduling_state(

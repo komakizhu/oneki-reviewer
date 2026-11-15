@@ -19,6 +19,7 @@ ADDON_FILES = (
     "core.py",
     "i18n.py",
     "integration.py",
+    "legacy.py",
     "manifest.json",
     "models.py",
     "state.py",

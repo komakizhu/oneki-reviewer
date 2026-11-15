@@ -76,15 +76,15 @@ class _SchedulingState:
 
 
 class IntegrationTests(unittest.TestCase):
-    def test_manifest_supports_anki_26_9_3_through_26_9_4(self):
+    def test_manifest_allows_anki_21_and_newer(self):
         manifest_path = (
             Path(__file__).resolve().parents[1]
             / "anki_batch_auto_easy"
             / "manifest.json"
         )
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        self.assertEqual(manifest["min_point_version"], 260903)
-        self.assertEqual(manifest["max_point_version"], -260904)
+        self.assertEqual(manifest["min_point_version"], 0)
+        self.assertNotIn("max_point_version", manifest)
 
     def test_selected_diagnostics_are_logged_instead_of_notified(self):
         source = (
@@ -1186,11 +1186,14 @@ class IntegrationTests(unittest.TestCase):
                 pass
 
         class _Label:
-            def __init__(self):
+            def __init__(self, *_args):
                 self.word_wrap = False
 
             def setWordWrap(self, value):
                 self.word_wrap = value
+
+            def setAlignment(self, *_args):
+                pass
 
         class _Form:
             def __init__(self, _parent):
@@ -1230,14 +1233,18 @@ class IntegrationTests(unittest.TestCase):
 
         dialog = SettingsDialog.__new__(SettingsDialog)
         dialog.mode_stack = _Stack()
-        dialog._build_percent_page(
-            _Spin,
-            _Form,
-            _Widget,
-            _Label,
-            {"distribution_percent": 0.2},
-            120,
-        )
+        with patch(
+            "anki_batch_auto_easy.integration._right_aligned_label",
+            side_effect=lambda *_args: _Label(),
+        ):
+            dialog._build_percent_page(
+                _Spin,
+                _Form,
+                _Widget,
+                _Label,
+                {"distribution_percent": 0.2},
+                120,
+            )
 
         self.assertIsInstance(dialog.percent_help, _Label)
         self.assertTrue(dialog.percent_help.word_wrap)

@@ -1824,7 +1824,9 @@ class BatchController:
         sequence = len(self.state["batches"][batch_key].get("attempts", []))
         attempt_id = f"{batch_key}:{sequence}:{card_id}:{now_ms}"
 
-        states = reviewer._v3.states
+        states = getattr(reviewer._v3, "states", None)
+        if states is None:
+            states = reviewer._v3.next_states
         from anki.scheduler.v3 import CardAnswer
 
         good_answer = self.mw.col.sched.build_answer(
@@ -2431,16 +2433,28 @@ def _is_unrescheduled_preview(state: Any) -> bool:
 
 def _read_card_time_taken(card: Any) -> int | None:
     try:
-        return max(0, int(card.time_taken(capped=False)))
+        reader = getattr(card, "time_taken", None)
+        if callable(reader):
+            return max(0, int(reader(capped=False)))
+        reader = getattr(card, "timeTaken", None)
+        if callable(reader):
+            return max(0, int(reader()))
     except Exception:
-        return None
+        pass
+    return None
 
 
 def _read_card_time_limit(card: Any) -> int | None:
     try:
-        return max(0, int(card.time_limit()))
+        reader = getattr(card, "time_limit", None)
+        if callable(reader):
+            return max(0, int(reader()))
+        reader = getattr(card, "timeLimit", None)
+        if callable(reader):
+            return max(0, int(reader()))
     except Exception:
-        return None
+        pass
+    return None
 
 
 def _timing_sample(
@@ -3487,6 +3501,11 @@ def initialize() -> None:
     gui_hooks.webview_did_receive_js_message.append(controller.handle_regrade_shortcut)
 
     version = getattr(aqt, "appVersion", "")
-    if not version.startswith("26.9"):
-        print(f"{PACKAGE_NAME}: target Anki version is 26.9.x, found {version}")
+    collection = getattr(mw, "col", None)
+    scheduler = getattr(collection, "sched", None)
+    if scheduler is not None and not hasattr(scheduler, "answer_card"):
+        raise RuntimeError(
+            f"{PACKAGE_NAME}: the modern integration requires Anki's V3 scheduler; "
+            f"the active scheduler in {version or 'unknown'} is not supported"
+        )
 

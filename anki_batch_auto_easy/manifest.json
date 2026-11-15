@@ -1,7 +1,6 @@
 {
   "package": "anki_batch_auto_easy",
   "name": "一阅（Oneki reviewer）",
-  "human_version": "0.10.4",
-  "min_point_version": 260903,
-  "max_point_version": -260904
+  "human_version": "0.11.0",
+  "min_point_version": 0
 }

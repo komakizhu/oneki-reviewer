@@ -13,7 +13,13 @@
 
 The add-on follows Anki's selected language: Chinese for Chinese Anki, English for English Anki, and English for all other languages.
 
-## 安装
+## 从 AnkiWeb 安装 / Install from AnkiWeb
+
+在 Anki 中选择“工具 → 插件 → 获取插件”，输入插件代码 **465284797**。也可以打开[一阅 AnkiWeb 页面](https://ankiweb.net/shared/info/465284797)查看详情。
+
+In Anki, choose **Tools → Add-ons → Get Add-ons**, enter **465284797**, and follow the prompts. See the [Oneki reviewer AnkiWeb page](https://ankiweb.net/shared/info/465284797) for details.
+
+## 手动安装 / Manual installation
 
 把 `anki_batch_auto_easy` 文件夹复制到 Anki 的插件目录。
 

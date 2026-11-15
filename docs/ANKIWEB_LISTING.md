@@ -35,4 +35,5 @@ In Anki, choose **Tools → Add-ons → Get Add-ons**, enter the code shown on t
 - License: GNU AGPL v3.0, see [LICENSE](../LICENSE).
 - Source and issue tracker: <https://github.com/komakizhu/oneki-reviewer>
 - Compatibility: Anki 26.9.3, macOS and Windows.
-- AnkiWeb add-on code and listing URL: fill in after the listing is accepted.
+- AnkiWeb add-on code: `465284797`
+- AnkiWeb listing: <https://ankiweb.net/shared/info/465284797>
